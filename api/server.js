@@ -1,31 +1,49 @@
+// Import dependencies
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
+const session = require('express-session');
 
+// Routing and database access
 const usersRouter = require('./users/users-routes.js');
 const Users = require('./users/users-model.js');
 
+// Server instance
 const server = express();
 
+// Session config
+const sessionConfig = {
+    name: 'pretzelsaregood', // default is connect.sid
+    secret: 'nobody tosses a dwarf!',
+    cookie: {
+        maxAge: 1 * 24 * 60 * 60 * 1000,
+        secure: true // only set cookies over https. Server will not send back a cookie over http.
+    }, // 1 day in milliseconds
+    httpOnly: true, // don't let JS code access cookies. Browser extensions run JS code on your browser!
+    resave: false,
+    saveUninitialized: false
+};
+
+// Use
 server.use(helmet());
 server.use(express.json());
 server.use(cors());
-
+server.use(session(sessionConfig));
 server.use('/api/users', usersRouter);
 
+// General endpoints
 server.get('/', (req, res) => {
     res.send('Server running...');
 });
 
 server.post('/api/register', (req, res) => {
-    const credentials = req.body;
+    let { username, password } = req.body;
+    console.log(username, password);
 
-    const hash = bcrypt.hashSync(credentials.password, 14);
+    const hash = bcrypt.hashSync(password, 8);
 
-    credentials.password = hash;
-
-    Users.add(credentials)
+    Users.add({ username, password: hash })
         .then(saved => {
             res.status(201).json(saved);
         })
